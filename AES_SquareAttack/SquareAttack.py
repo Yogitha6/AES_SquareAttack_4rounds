@@ -1,3 +1,8 @@
+#################################################
+#	Square Attack on 4 round AES  		#
+#	        Yogitha Mahadasu                #
+#################################################
+
 import time
 import itertools
 
