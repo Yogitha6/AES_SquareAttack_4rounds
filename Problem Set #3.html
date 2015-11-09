@@ -1,0 +1,135 @@
+
+<!-- saved from url=(0068)https://www.cs.colorado.edu/~jrblack/class/csci7000a/f15/hw/hw3.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+  <title>Problem Set #1</title>
+<style type="text/css"></style></head>
+<body bgcolor="#ffffff">
+
+<h4 align="CENTER"> CSCI 4830//7000 - Cryptanalysis - Fall 2015</h4>
+<h3 align="center"> Problem Set #3</h3>
+<h4 align="CENTER"> Due: Nov 10th, 2015</h4>
+
+1.  Consider the finite field GF(16) with irreducible polynomial
+m(x) = x<sup>4</sup> + x<sup>3</sup> + 1.  (You'll have to trust me that m(x)
+is irreducible over F<sub>2</sub> here.) We will, as usual, represent
+group elements as either polynomials in <em>x</em>, or a hex number, or 
+binary strings, with the usual mapping between these representations.
+<br>
+<b>(a)</b> What polynomial corresponds to the hex number 'a'?
+<br>
+<b>(b)</b> What is 'a' + '7' in this field?
+<br>
+<b>(c)</b> What is 'a' * '7' in this field?
+<br>
+<b>(d)</b> What is the additive inverse of 'e' in this field?
+<br>
+<b>(e)</b> What is the multiplicative inverse of 'e' in this field?  (Try
+elements exhaustively using the <b>xtime()</b> method and show your work. 
+You can use Euclid's algorithm if you know it.)
+<p>
+2. We said in class that MixColumn on a column with exactly one active
+cell, and the rest constant, converts to all cells active.  Prove this.
+</p><p>
+In order to have a convincing proof, first write down carefully what it is
+we are claiming here.  Then do the algebra in the proper ring or field to
+show that the claim must be true.
+</p><p>
+3. Please implement the 4-round attack against Rijndael.
+</p><p>
+First, download the <a href="https://www.cs.colorado.edu/~jrblack/class/csci7000a/f15/hw/rijndael-fst-3.0.zip">Rijndael source</a>
+to your computer and unzip it and build it (for Unix, just run <tt>make</tt>;
+you might have to add the line <tt>CC=gcc</tt> if the cc compiler does not
+exist on your machine).  Then download a program
+I wrote <a href="https://www.cs.colorado.edu/~jrblack/class/csci7000a/f15/hw/4rnds.c">4rnds.c</a> and build it.  For unix
+</p><pre>  % gcc rijndael-alg-fst.o 4rnds.c -o 4rnds
+</pre>
+If you examine the source to <tt>4rnds.c</tt>, you'll
+see that I have the number of rounds (<tt>AES_ROUNDS</tt>) set to 4,
+and the key is set to all 0's.  Run <tt>4rnds</tt>
+and make sure you get the same output as
+<a href="https://www.cs.colorado.edu/~jrblack/class/csci7000a/f15/hw/4rnds-zero-key.out">what I got.</a>
+<p>
+Ok, now here's your goal: I ran this same program, <tt>4rnds.c</tt>, with a
+<b>different</b> key which I'm not telling you, but the same plaintexts
+(which happen to be very nice for the Square attack, as you can see from
+the source code).  Under this secret key, I got <a href="https://www.cs.colorado.edu/~jrblack/class/csci7000a/f15/hw/4rnds-sec-key.out">
+256 ciphertexts</a> which you now will use to mount the attack.
+</p><p>
+The answer to this problem is the value of that secret key.  This means
+you'll have to study the key schedule, but that's not too hard.  Along with
+your answer, please provide the well-documented source code you used to
+crack this cipher.
+</p><p>
+You probably will get <b>several</b> candidate
+keys.  You can narrow these down by trying each of them on the following
+plaintext/ciphertext pair (which uses the same secret key you are looking
+for).  If there is still more than one candidate key which works, please
+hand in all that you found.
+</p><pre>pt: 0102030405060708090a0b0c0d0e0f00
+ct: 71fae486fafc990d4a44a21a7fac6b75
+</pre>
+<p>
+4. (Grad students only; Undergrads can do this for Extra Credit)
+Define blockcipher X as follows: X has a 128-bit blocksize and
+a 12800-bit key K.  K is broken into 100 chunks of 128-bits each, 
+K<sub>1</sub> through K<sub>100</sub>.
+Blockcipher X(K, P) is like this: C<sub>0</sub>=P and
+C<sub>i</sub>=S(C<sub>i-1</sub> &#8853; K<sub>i</sub>), where S(&#8901;) is 
+inversion in GF(2<sup>128</sup>) (where 0 goes to 0 as usual).
+The output of the blockcipher is C<sub>100</sub>.  Break this thing.
+</p><p>
+Details: Our irreducible polynomial of degree 128 will be
+x<sup>128</sup>+x<sup>7</sup>+x<sup>2</sup>+x+1.  This is irreducible over
+GF(2).  I have taken a publicly-available library
+<a href="https://www.cs.colorado.edu/~jrblack/class/csci7000a/f15/hw/ffield.py">ffield.py</a>
+and added this modulus
+to it so we can compute easily in python in this field.
+Instructions are contained in the source code.
+</p><p>
+Now it's quite easy to implement cipher X as described above:
+</p><pre>import ffield
+import keylist
+
+F = ffield.FField(128)
+
+def encipher(x):
+    for i in range(100):
+        x = F.Inverse(F.Add(x, keylist.key[i]))
+    return x
+
+def decipher(x):
+    for i in reversed(range(100)):
+        x = F.Add(F.Inverse(x), keylist.key[i])
+    return x
+</pre>
+where keylist.py is a file just listing the 100 round keys.  If you want a
+random 12,800 bit master key, you can use this python code to generate one
+and then save its output to keylist.py (which will make the above code work):
+<pre>import random
+
+print "keys = ["
+for i in range(99):
+    k = random.getrandbits(128)
+    print k, ','
+print random.getrandbits(128), ']'
+</pre>
+Using these techniques, I have created my own 12,800 bit random key
+and enciphered the three plaintexts 0L, 1L, and 2L.  Their corresponding
+ciphertexts in decimal are
+<pre>131561246017920334936828440555437427465L
+248729583318336296365530932515022212932L
+248633568239107965830560009361047375509L
+</pre>
+After you have broken this thing, you won't have the key I used, but you
+will be able to decipher any ciphertext I give you.  Please hand in the
+decipherment of the ciphertext
+<tt>330927140779763012830194718016277696816L</tt> along with your
+source code.  Note this can be done in 5 lines of python.  Finding the right
+5 lines should, however, be fairly challenging.
+<p>
+
+
+
+
+
+</p></body></html>
